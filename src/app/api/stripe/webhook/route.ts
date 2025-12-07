@@ -57,21 +57,23 @@ export async function POST(req: NextRequest) {
         const customerId = subscription.customer as string;
         
         // Find membership by customer ID and update
-        const { prisma } = await import('@/lib/prisma');
-        const membership = await prisma.membership.findFirst({
-          where: { stripeCustomerId: customerId },
-        });
-        
-        if (membership) {
-          let status = 'ACTIVE';
-          if (subscription.status === 'canceled') status = 'CANCELLED';
-          else if (subscription.status === 'past_due') status = 'PAST_DUE';
-          else if (subscription.status === 'active') status = 'ACTIVE';
-          
-          await createOrUpdateMembership(membership.userId, {
-            status,
-            currentPeriodEnd: new Date((subscription as unknown as { current_period_end: number }).current_period_end * 1000),
+        const { default: prismaClient } = await import('@/lib/prisma');
+        if (prismaClient) {
+          const membership = await prismaClient.membership.findFirst({
+            where: { stripeCustomerId: customerId },
           });
+          
+          if (membership) {
+            let status = 'ACTIVE';
+            if (subscription.status === 'canceled') status = 'CANCELLED';
+            else if (subscription.status === 'past_due') status = 'PAST_DUE';
+            else if (subscription.status === 'active') status = 'ACTIVE';
+            
+            await createOrUpdateMembership(membership.userId, {
+              status,
+              currentPeriodEnd: new Date((subscription as unknown as { current_period_end: number }).current_period_end * 1000),
+            });
+          }
         }
         break;
       }
@@ -80,15 +82,17 @@ export async function POST(req: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
         
-        const { prisma } = await import('@/lib/prisma');
-        const membership = await prisma.membership.findFirst({
-          where: { stripeCustomerId: customerId },
-        });
-        
-        if (membership) {
-          await createOrUpdateMembership(membership.userId, {
-            status: 'CANCELLED',
+        const { default: prismaClient2 } = await import('@/lib/prisma');
+        if (prismaClient2) {
+          const membership = await prismaClient2.membership.findFirst({
+            where: { stripeCustomerId: customerId },
           });
+          
+          if (membership) {
+            await createOrUpdateMembership(membership.userId, {
+              status: 'CANCELLED',
+            });
+          }
         }
         break;
       }
