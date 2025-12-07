@@ -4,8 +4,19 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient();
+// Only create Prisma client if DATABASE_URL is available
+const createPrismaClient = () => {
+  if (!process.env.DATABASE_URL) {
+    console.warn('DATABASE_URL not set - database operations will fail');
+    return null;
+  }
+  return new PrismaClient();
+};
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-export default prisma;
+if (process.env.NODE_ENV !== 'production' && prisma) {
+  globalForPrisma.prisma = prisma;
+}
+
+export default prisma as PrismaClient;

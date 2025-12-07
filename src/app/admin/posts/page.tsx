@@ -5,15 +5,20 @@ import { Plus, Edit, ExternalLink } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
 async function getPosts() {
-  return prisma.post.findMany({
-    include: {
-      category: true,
-      author: {
-        select: { name: true },
+  if (!prisma) return [];
+  try {
+    return await prisma.post.findMany({
+      include: {
+        category: true,
+        author: {
+          select: { name: true },
+        },
       },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+      orderBy: { createdAt: 'desc' },
+    });
+  } catch {
+    return [];
+  }
 }
 
 export default async function PostsPage() {

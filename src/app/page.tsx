@@ -3,87 +3,107 @@ import prisma from "@/lib/prisma";
 import { getRandomAd } from "@/lib/ads";
 
 async function getFeaturedPost() {
-  const now = new Date();
-  return prisma.post.findFirst({
-    where: {
-      status: "PUBLISHED",
-      isFeatured: true,
-      OR: [
-        { publishAt: { lte: now } },
-        { publishAt: null },
-      ],
-    },
-    include: {
-      category: true,
-    },
-    orderBy: {
-      publishAt: "desc",
-    },
-  });
+  if (!prisma) return null;
+  try {
+    const now = new Date();
+    return await prisma.post.findFirst({
+      where: {
+        status: "PUBLISHED",
+        isFeatured: true,
+        OR: [
+          { publishAt: { lte: now } },
+          { publishAt: null },
+        ],
+      },
+      include: {
+        category: true,
+      },
+      orderBy: {
+        publishAt: "desc",
+      },
+    });
+  } catch {
+    return null;
+  }
 }
 
 async function getLatestPosts(excludeId?: string) {
-  const now = new Date();
-  return prisma.post.findMany({
-    where: {
-      status: "PUBLISHED",
-      id: excludeId ? { not: excludeId } : undefined,
-      OR: [
-        { publishAt: { lte: now } },
-        { publishAt: null },
-      ],
-    },
-    include: {
-      category: true,
-    },
-    orderBy: {
-      publishAt: "desc",
-    },
-    take: 10,
-  });
+  if (!prisma) return [];
+  try {
+    const now = new Date();
+    return await prisma.post.findMany({
+      where: {
+        status: "PUBLISHED",
+        id: excludeId ? { not: excludeId } : undefined,
+        OR: [
+          { publishAt: { lte: now } },
+          { publishAt: null },
+        ],
+      },
+      include: {
+        category: true,
+      },
+      orderBy: {
+        publishAt: "desc",
+      },
+      take: 10,
+    });
+  } catch {
+    return [];
+  }
 }
 
 async function getTrendingPosts() {
-  const now = new Date();
-  return prisma.post.findMany({
-    where: {
-      status: "PUBLISHED",
-      OR: [
-        { publishAt: { lte: now } },
-        { publishAt: null },
-      ],
-    },
-    include: {
-      category: true,
-    },
-    orderBy: {
-      views: "desc",
-    },
-    take: 5,
-  });
+  if (!prisma) return [];
+  try {
+    const now = new Date();
+    return await prisma.post.findMany({
+      where: {
+        status: "PUBLISHED",
+        OR: [
+          { publishAt: { lte: now } },
+          { publishAt: null },
+        ],
+      },
+      include: {
+        category: true,
+      },
+      orderBy: {
+        views: "desc",
+      },
+      take: 5,
+    });
+  } catch {
+    return [];
+  }
 }
 
 async function getPostsByCategory(categorySlug: string, limit: number = 4) {
-  const now = new Date();
-  return prisma.post.findMany({
-    where: {
-      status: "PUBLISHED",
-      category: {
-        slug: categorySlug,
+  if (!prisma) return [];
+  try {
+    const now = new Date();
+    return await prisma.post.findMany({
+      where: {
+        status: "PUBLISHED",
+        category: {
+          slug: categorySlug,
+        },
+        OR: [
+          { publishAt: { lte: now } },
+          { publishAt: null },
+        ],
       },
-      OR: [
-        { publishAt: { lte: now } },
-        { publishAt: null },
-      ],
-    },
-    include: {
-      category: true,
-    },
-    orderBy: {
-      publishAt: "desc",
-    },
-    take: limit,
-  });
+      include: {
+        category: true,
+      },
+      orderBy: {
+        publishAt: "desc",
+      },
+      take: limit,
+    });
+  } catch {
+    return [];
+  }
 }
 
 export default async function HomePage() {

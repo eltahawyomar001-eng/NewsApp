@@ -3,9 +3,14 @@ import prisma from '@/lib/prisma';
 import { formatDate } from '@/lib/utils';
 
 async function getSubscribers() {
-  return prisma.newsletterSubscriber.findMany({
-    orderBy: { createdAt: 'desc' },
-  });
+  if (!prisma) return [];
+  try {
+    return await prisma.newsletterSubscriber.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  } catch {
+    return [];
+  }
 }
 
 export default async function SubscribersPage() {

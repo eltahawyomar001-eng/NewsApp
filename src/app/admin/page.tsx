@@ -3,60 +3,82 @@ import prisma from '@/lib/prisma';
 import { FileText, Calendar, Users, Eye } from 'lucide-react';
 
 async function getDashboardStats() {
-  const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (!prisma) {
+    return {
+      totalPosts: 0,
+      publishedToday: 0,
+      scheduledPosts: 0,
+      totalSubscribers: 0,
+      premiumMembers: 0,
+      recentPosts: [],
+    };
+  }
   
-  const [
-    totalPosts,
-    publishedToday,
-    scheduledPosts,
-    totalSubscribers,
-    premiumMembers,
-    recentPosts,
-  ] = await Promise.all([
-    prisma.post.count(),
-    prisma.post.count({
-      where: {
-        status: 'PUBLISHED',
-        publishAt: { gte: startOfDay },
-      },
-    }),
-    prisma.post.count({
-      where: {
-        status: 'SCHEDULED',
-        publishAt: { gt: now },
-      },
-    }),
-    prisma.newsletterSubscriber.count(),
-    prisma.membership.count({
-      where: { status: 'ACTIVE' },
-    }),
-    prisma.post.findMany({
-      where: {
-        OR: [
-          { status: 'PUBLISHED' },
-          { status: 'SCHEDULED' },
-        ],
-      },
-      include: {
-        category: true,
-        author: {
-          select: { name: true },
+  try {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const [
+      totalPosts,
+      publishedToday,
+      scheduledPosts,
+      totalSubscribers,
+      premiumMembers,
+      recentPosts,
+    ] = await Promise.all([
+      prisma.post.count(),
+      prisma.post.count({
+        where: {
+          status: 'PUBLISHED',
+          publishAt: { gte: startOfDay },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    }),
-  ]);
+      }),
+      prisma.post.count({
+        where: {
+          status: 'SCHEDULED',
+          publishAt: { gt: now },
+        },
+      }),
+      prisma.newsletterSubscriber.count(),
+      prisma.membership.count({
+        where: { status: 'ACTIVE' },
+      }),
+      prisma.post.findMany({
+        where: {
+          OR: [
+            { status: 'PUBLISHED' },
+            { status: 'SCHEDULED' },
+          ],
+        },
+        include: {
+          category: true,
+          author: {
+            select: { name: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+    ]);
 
-  return {
-    totalPosts,
-    publishedToday,
-    scheduledPosts,
-    totalSubscribers,
-    premiumMembers,
-    recentPosts,
-  };
+    return {
+      totalPosts,
+      publishedToday,
+      scheduledPosts,
+      totalSubscribers,
+      premiumMembers,
+      recentPosts,
+    };
+  } catch {
+    return {
+      totalPosts: 0,
+      publishedToday: 0,
+      scheduledPosts: 0,
+      totalSubscribers: 0,
+      premiumMembers: 0,
+      recentPosts: [],
+    };
+  }
 }
 
 export default async function AdminDashboard() {

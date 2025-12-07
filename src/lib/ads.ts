@@ -3,42 +3,48 @@ import prisma from './prisma';
 export type AdPosition = 'TOP_BANNER' | 'SIDEBAR' | 'INLINE';
 
 export async function getActiveAds(position: AdPosition) {
-  const now = new Date();
+  if (!prisma) return [];
   
-  const ads = await prisma.ad.findMany({
-    where: {
-      position,
-      isActive: true,
-      OR: [
-        {
-          AND: [
-            { activeFrom: { lte: now } },
-            { activeTo: { gte: now } },
-          ],
-        },
-        {
-          AND: [
-            { activeFrom: null },
-            { activeTo: null },
-          ],
-        },
-        {
-          AND: [
-            { activeFrom: { lte: now } },
-            { activeTo: null },
-          ],
-        },
-        {
-          AND: [
-            { activeFrom: null },
-            { activeTo: { gte: now } },
-          ],
-        },
-      ],
-    },
-  });
-  
-  return ads;
+  try {
+    const now = new Date();
+    
+    const ads = await prisma.ad.findMany({
+      where: {
+        position,
+        isActive: true,
+        OR: [
+          {
+            AND: [
+              { activeFrom: { lte: now } },
+              { activeTo: { gte: now } },
+            ],
+          },
+          {
+            AND: [
+              { activeFrom: null },
+              { activeTo: null },
+            ],
+          },
+          {
+            AND: [
+              { activeFrom: { lte: now } },
+              { activeTo: null },
+            ],
+          },
+          {
+            AND: [
+              { activeFrom: null },
+              { activeTo: { gte: now } },
+            ],
+          },
+        ],
+      },
+    });
+    
+    return ads;
+  } catch {
+    return [];
+  }
 }
 
 export async function getRandomAd(position: AdPosition) {

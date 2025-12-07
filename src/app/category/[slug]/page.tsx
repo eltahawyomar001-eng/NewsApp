@@ -8,30 +8,40 @@ interface CategoryPageProps {
 }
 
 async function getCategory(slug: string) {
-  return prisma.category.findUnique({
-    where: { slug },
-  });
+  if (!prisma) return null;
+  try {
+    return await prisma.category.findUnique({
+      where: { slug },
+    });
+  } catch {
+    return null;
+  }
 }
 
 async function getCategoryPosts(categoryId: string) {
-  const now = new Date();
-  return prisma.post.findMany({
-    where: {
-      categoryId,
-      status: 'PUBLISHED',
-      OR: [
-        { publishAt: { lte: now } },
-        { publishAt: null },
-      ],
-    },
-    include: {
-      category: true,
-    },
-    orderBy: {
-      publishAt: 'desc',
-    },
-    take: 20,
-  });
+  if (!prisma) return [];
+  try {
+    const now = new Date();
+    return await prisma.post.findMany({
+      where: {
+        categoryId,
+        status: 'PUBLISHED',
+        OR: [
+          { publishAt: { lte: now } },
+          { publishAt: null },
+        ],
+      },
+      include: {
+        category: true,
+      },
+      orderBy: {
+        publishAt: 'desc',
+      },
+      take: 20,
+    });
+  } catch {
+    return [];
+  }
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
