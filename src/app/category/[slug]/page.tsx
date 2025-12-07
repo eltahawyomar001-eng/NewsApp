@@ -80,8 +80,14 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 }
 
 export async function generateStaticParams() {
-  const categories = await prisma.category.findMany();
-  return categories.map((category) => ({
-    slug: category.slug,
-  }));
+  // Return empty array during build if database is not available
+  // Pages will be generated on-demand at runtime
+  try {
+    const categories = await prisma.category.findMany();
+    return categories.map((category) => ({
+      slug: category.slug,
+    }));
+  } catch {
+    return [];
+  }
 }
