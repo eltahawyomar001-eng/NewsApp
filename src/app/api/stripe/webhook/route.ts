@@ -5,6 +5,10 @@ import { createOrUpdateMembership } from '@/lib/membership';
 import Stripe from 'stripe';
 
 export async function POST(req: NextRequest) {
+  if (!stripe) {
+    return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 });
+  }
+
   const body = await req.text();
   const headersList = await headers();
   const signature = headersList.get('stripe-signature');
@@ -32,7 +36,7 @@ export async function POST(req: NextRequest) {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
         
-        if (userId && session.subscription) {
+        if (userId && session.subscription && stripe) {
           const subscriptionResponse = await stripe.subscriptions.retrieve(
             session.subscription as string
           );
