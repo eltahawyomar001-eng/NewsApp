@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Header, Footer } from '@/components';
@@ -23,7 +23,7 @@ const features = {
   ],
 };
 
-export default function MembershipPage() {
+function MembershipContent() {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const success = searchParams.get('success');
@@ -214,5 +214,21 @@ export default function MembershipPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function MembershipPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </main>
+        <Footer />
+      </div>
+    }>
+      <MembershipContent />
+    </Suspense>
   );
 }
