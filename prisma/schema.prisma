@@ -1,0 +1,137 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User roles: USER, EDITOR, ADMIN
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String    @default("USER") // USER, EDITOR, ADMIN
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  accounts      Account[]
+  sessions      Session[]
+  membership    Membership?
+  posts         Post[]    @relation("AuthorPosts")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Membership for premium access
+model Membership {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeCustomerId    String?   @unique
+  stripeSubscriptionId String?  @unique
+  status              String    @default("FREE") // FREE, ACTIVE, CANCELLED, PAST_DUE
+  currentPeriodEnd    DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+// Post/Article model
+model Post {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  summary     String
+  externalUrl String
+  imageUrl    String?
+  
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id])
+  
+  authorId    String
+  author      User      @relation("AuthorPosts", fields: [authorId], references: [id])
+  
+  isPremium   Boolean   @default(false)
+  isFeatured  Boolean   @default(false)
+  status      String    @default("DRAFT") // DRAFT, SCHEDULED, PUBLISHED
+  
+  publishAt   DateTime?
+  views       Int       @default(0)
+  
+  label       String?   // "Analysis", "Opinion", "Featured", etc.
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Category model
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  sortOrder Int      @default(0)
+  posts     Post[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Ad model for ad slots
+model Ad {
+  id          String    @id @default(cuid())
+  title       String
+  imageUrl    String?
+  linkUrl     String
+  position    String    // TOP_BANNER, SIDEBAR, INLINE
+  activeFrom  DateTime?
+  activeTo    DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Newsletter subscribers
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}

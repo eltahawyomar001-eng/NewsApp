@@ -1,65 +1,166 @@
-import Image from "next/image";
+import { Header, Footer, HeroStory, StoryList, TrendingList, SectionHeader, AdSlot, NewsletterModule } from "@/components";
+import prisma from "@/lib/prisma";
+import { getRandomAd } from "@/lib/ads";
 
-export default function Home() {
+async function getFeaturedPost() {
+  const now = new Date();
+  return prisma.post.findFirst({
+    where: {
+      status: "PUBLISHED",
+      isFeatured: true,
+      OR: [
+        { publishAt: { lte: now } },
+        { publishAt: null },
+      ],
+    },
+    include: {
+      category: true,
+    },
+    orderBy: {
+      publishAt: "desc",
+    },
+  });
+}
+
+async function getLatestPosts(excludeId?: string) {
+  const now = new Date();
+  return prisma.post.findMany({
+    where: {
+      status: "PUBLISHED",
+      id: excludeId ? { not: excludeId } : undefined,
+      OR: [
+        { publishAt: { lte: now } },
+        { publishAt: null },
+      ],
+    },
+    include: {
+      category: true,
+    },
+    orderBy: {
+      publishAt: "desc",
+    },
+    take: 10,
+  });
+}
+
+async function getTrendingPosts() {
+  const now = new Date();
+  return prisma.post.findMany({
+    where: {
+      status: "PUBLISHED",
+      OR: [
+        { publishAt: { lte: now } },
+        { publishAt: null },
+      ],
+    },
+    include: {
+      category: true,
+    },
+    orderBy: {
+      views: "desc",
+    },
+    take: 5,
+  });
+}
+
+async function getPostsByCategory(categorySlug: string, limit: number = 4) {
+  const now = new Date();
+  return prisma.post.findMany({
+    where: {
+      status: "PUBLISHED",
+      category: {
+        slug: categorySlug,
+      },
+      OR: [
+        { publishAt: { lte: now } },
+        { publishAt: null },
+      ],
+    },
+    include: {
+      category: true,
+    },
+    orderBy: {
+      publishAt: "desc",
+    },
+    take: limit,
+  });
+}
+
+export default async function HomePage() {
+  const [featuredPost, latestPosts, trendingPosts, topBannerAd, sidebarAd1, sidebarAd2, inlineAd] = await Promise.all([
+    getFeaturedPost(),
+    getLatestPosts(),
+    getTrendingPosts(),
+    getRandomAd("TOP_BANNER"),
+    getRandomAd("SIDEBAR"),
+    getRandomAd("SIDEBAR"),
+    getRandomAd("INLINE"),
+  ]);
+
+  const postsExcludingFeatured = latestPosts.filter(p => p.id !== featuredPost?.id);
+
+  const [politicsPosts, businessPosts, techPosts] = await Promise.all([
+    getPostsByCategory("politics", 4),
+    getPostsByCategory("business", 4),
+    getPostsByCategory("technology", 4),
+  ]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      
+      {topBannerAd && (
+        <div className="max-w-6xl mx-auto px-4 lg:px-6 pt-4">
+          <AdSlot ad={topBannerAd} position="TOP_BANNER" />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      )}
+
+      <main className="flex-1 max-w-6xl mx-auto px-4 lg:px-6 py-6">
+        <div className="lg:grid lg:grid-cols-[2fr,1fr] lg:gap-8">
+          <div>
+            {featuredPost && <HeroStory post={featuredPost} />}
+
+            <section className="mb-8">
+              <SectionHeader title="Latest" />
+              <StoryList posts={postsExcludingFeatured.slice(0, 5)} />
+            </section>
+
+            {inlineAd && <AdSlot ad={inlineAd} position="INLINE" />}
+
+            {politicsPosts.length > 0 && (
+              <section className="mb-8">
+                <SectionHeader title="Politics" href="/category/politics" />
+                <StoryList posts={politicsPosts} showCategory={false} />
+              </section>
+            )}
+
+            {businessPosts.length > 0 && (
+              <section className="mb-8">
+                <SectionHeader title="Business" href="/category/business" />
+                <StoryList posts={businessPosts} showCategory={false} />
+              </section>
+            )}
+
+            {techPosts.length > 0 && (
+              <section className="mb-8">
+                <SectionHeader title="Technology" href="/category/technology" />
+                <StoryList posts={techPosts} showCategory={false} />
+              </section>
+            )}
+          </div>
+
+          <aside className="hidden lg:block space-y-6">
+            <NewsletterModule />
+            <TrendingList posts={trendingPosts} />
+            {sidebarAd1 && <AdSlot ad={sidebarAd1} position="SIDEBAR" />}
+            {sidebarAd2 && sidebarAd2.id !== sidebarAd1?.id && (
+              <AdSlot ad={sidebarAd2} position="SIDEBAR" />
+            )}
+          </aside>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }
