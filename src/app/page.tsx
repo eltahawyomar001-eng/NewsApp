@@ -2,6 +2,9 @@ import { Header, Footer, HeroStory, StoryList, TrendingList, SectionHeader, AdSl
 import prisma from "@/lib/prisma";
 import { getRandomAd } from "@/lib/ads";
 
+// Force dynamic rendering - fetch fresh data on each request
+export const dynamic = 'force-dynamic';
+
 async function getFeaturedPost() {
   if (!prisma) return null;
   try {
